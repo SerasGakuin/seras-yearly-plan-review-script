@@ -3,15 +3,35 @@
  * 次回以降の面談のためのヒントを生成する機能。
  */
 /**
- * サイドバー展開用
+ * サイドバー展開用。
  */
 function openSidebar() {
+  // uiを準備
   const ui = DocumentApp.getUi();
   const template = HtmlService.createTemplateFromFile("03_index");
+  // 存在しているメモを取得
+  const existingNotes = getExistingNotes();
+  template.existingNotes = existingNotes.slice(0, 8); // 8つまで取る
+  // html生成
   const htmlOutput = template.evaluate();
   htmlOutput.setTitle("次回面談時注意抽出");
   ui.showSidebar(htmlOutput);
 }
+
+/**
+* @typedef {Object} noteForNextMeeting - 次回面談のためのメモオブジェクト
+* @property {Date} date - 日付
+* @property {string} content - 内容
+*/
+/**
+* 既に存在しているメモをスピードプランナーから取得
+* @returns {noteForNextMeeting[]}
+*/
+function getExistingNotes() {
+  // spIOManagerを利用してデータを取得
+  
+}
+
 /**
  * 生成用
  */
