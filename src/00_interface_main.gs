@@ -52,8 +52,8 @@ function abstractFunction(request) {
 function runById(idArg) {
   const id = String(idArg).trim();
   switch (id) {
-    case "get_note_for_next_meeting":
-      return get_note_for_next_meeting();
+    case "getNewNotForNextMeeting":
+      return getNewNotForNextMeeting();
     default:
       throw new Error(`不明なid : ${id}`);
   }

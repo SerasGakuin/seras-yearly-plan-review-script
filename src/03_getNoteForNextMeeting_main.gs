@@ -29,13 +29,13 @@ function openSidebar() {
 */
 function getExistingNotes() {
   // spIOManagerを利用してデータを取得
-  
+
 }
 
 /**
  * 生成用
  */
-function get_note_for_next_meeting() {
+function getNewNotForNextMeeting() {
   const SEARCH_STRING = "面談メモ";
   const END_MARK = "以上。";
   const MODEL = "gpt-4o";

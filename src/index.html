@@ -25,7 +25,9 @@
       viewEl.textContent = "処理中…";
 
       // 関数実行用のリクエスト
-      const requestForFunc = { id: "get_note_for_next_meeting" };
+      const requestForFunc = {
+        id: "getNewNotForNextMeeting"
+      };
 
       google.script.run
         .withSuccessHandler(function (result) {
