@@ -5,26 +5,139 @@
   <meta charset="utf-8" />
   <title>自動実行サンプル</title>
   <style>
+    body {
+      font-family: sans-serif;
+      margin: 0;
+      padding: 0;
+    }
+
     #status {
       margin: 20px;
       font-weight: bold;
+    }
+
+    /* ===== 既存メモタブ ===== */
+    #notes-section {
+      margin: 20px;
+    }
+
+    #notes-tabs {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      margin-bottom: 0;
+    }
+
+    .note-tab {
+      padding: 6px 14px;
+      border: 1px solid #aaa;
+      border-bottom: none;
+      border-radius: 4px 4px 0 0;
+      cursor: pointer;
+      background: #eee;
+      font-size: 13px;
+      color: #444;
+      transition: background 0.15s;
+    }
+
+    .note-tab.active {
+      background: #fff;
+      border-color: #666;
+      color: #000;
+      font-weight: bold;
+    }
+
+    #notes-content {
+      border: 1px solid #666;
+      border-radius: 0 4px 4px 4px;
+      padding: 14px 16px;
+      background: #fff;
+      min-height: 80px;
+      font-size: 13px;
+      line-height: 1.7;
+      white-space: pre-wrap;
+      color: #222;
+    }
+
+    #notes-loading {
+      color: #888;
+      font-size: 13px;
+      margin: 8px 0;
+    }
+
+    /* ===== 分析結果エリア ===== */
+    #view {
+      margin: 20px;
+      font-size: 14px;
+      line-height: 1.8;
+      color: #222;
     }
   </style>
 </head>
 
 <body>
+
+  <div id="notes-section"></div>
   <div id="view"></div>
 
   <script>
+    // ===== 既存メモタブUI =====
+    (function () {
+      const section = document.getElementById("notes-section");
+      section.innerHTML = '<div id="notes-loading">既存メモを読み込み中…</div>';
+
+      google.script.run
+        .withSuccessHandler(function (notes) {
+          if (typeof notes === "string") notes = JSON.parse(notes);
+
+          const tabsEl = document.createElement("div");
+          tabsEl.id = "notes-tabs";
+
+          const contentEl = document.createElement("div");
+          contentEl.id = "notes-content";
+
+          if (!notes || notes.length === 0) {
+            section.innerHTML = '<div id="notes-loading">既存メモはありません。</div>';
+            return;
+          }
+
+          notes.forEach(function (note, i) {
+            const tab = document.createElement("div");
+            tab.className = "note-tab" + (i === 0 ? " active" : "");
+            const d = new Date(note.date);
+            tab.textContent = `${d.getFullYear()}/${d.getMonth() + 1}/${d.getDate()}`;
+
+            tab.addEventListener("click", function () {
+              document.querySelectorAll(".note-tab").forEach(t => t.classList.remove("active"));
+              tab.classList.add("active");
+              contentEl.textContent = note.content;
+            });
+
+            tabsEl.appendChild(tab);
+          });
+
+          contentEl.textContent = notes[0].content;
+
+          section.innerHTML = "";
+          section.appendChild(tabsEl);
+          section.appendChild(contentEl);
+        })
+        .withFailureHandler(function (err) {
+          section.innerHTML =
+            '<div id="notes-loading">メモ取得エラー: ' +
+            (err && err.message ? err.message : JSON.stringify(err)) + '</div>';
+        })
+        .getExistingNotes(8);
+    })();
+
+    // ===== 分析生成 =====
     /**
      * 最新のメモを参照して分析を追加する
      */
     function generateNextAnalysis() {
-      // 処理中マーク
       const viewEl = document.getElementById("view");
       viewEl.textContent = "処理中…";
 
-      // 関数実行用のリクエスト
       const requestForFunc = {
         id: "getNewNotForNextMeeting"
       };
@@ -48,7 +161,7 @@
             (err && err.message ? err.message : JSON.stringify(err));
         })
         .abstractFunction(requestForFunc);
-    };
+    }
   </script>
 </body>
 
