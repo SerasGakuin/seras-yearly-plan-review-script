@@ -10,7 +10,7 @@ function openSidebar() {
   const ui = DocumentApp.getUi();
   const template = HtmlService.createTemplateFromFile("03_index");
   // 存在しているメモを取得
-  const existingNotes = getExistingNotes();
+  const existingNotes = getExistingNotes(8);
   template.existingNotes = existingNotes.slice(0, 8); // 8つまで取る
   // html生成
   const htmlOutput = template.evaluate();
@@ -19,19 +19,21 @@ function openSidebar() {
 }
 
 /**
-* @typedef {Object} noteForNextMeeting - 次回面談のためのメモオブジェクト
+* @typedef {Object} MeetingNote - 次回面談のためのメモオブジェクト
 * @property {Date} date - 日付
 * @property {string} content - 内容
 */
+
 /**
-* 既に存在しているメモをスピードプランナーから取得
-* @returns {noteForNextMeeting[]}
-*/
-function getExistingNotes() {
-  // spIOManagerを利用してデータを取得
-
+ * 既に存在しているメモをスピードプランナーから取得
+ * @param {number} [maxN=8] 取得する最大件数
+ * @returns {MeetingNote[]}
+ */
+function getExistingNotes(maxN = 8) {
+  const book = SpreadsheetApp.getActive(); // ← SpreadSheetApp → SpreadsheetApp
+  const spIoManager = SheetIO.getSpeedPlannerIOManagerReadOnly(book); // ← typo修正
+  return spIoManager.getLatestMeetingNotes(maxN);
 }
-
 /**
  * 生成用
  */
