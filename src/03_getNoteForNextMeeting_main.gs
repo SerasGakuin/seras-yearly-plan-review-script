@@ -24,8 +24,9 @@ function openSidebar() {
 * @property {string} content - 内容
 */
 
-function getExistingNotesWithContext({max}){
-  return getExistingNotes(max)
+function getExistingNotesWithContext(context) {
+  const maxN = (context && context.maxN) ? context.maxN : 8;
+  return getExistingNotes(maxN);
 }
 /**
  * 既に存在しているメモをスピードプランナーから取得
