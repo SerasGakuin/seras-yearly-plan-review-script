@@ -3,19 +3,90 @@
  * 次回以降の面談のためのヒントを生成する機能。
  */
 /**
- * サイドバー展開用
+ * サイドバー展開用。
  */
 function openSidebar() {
+  // uiを準備
   const ui = DocumentApp.getUi();
   const template = HtmlService.createTemplateFromFile("03_index");
+  // 存在しているメモを取得
+  const existingNotes = getExistingNotes(8);
+  template.existingNotes = existingNotes.slice(0, 8); // 8つまで取る
+  // html生成
   const htmlOutput = template.evaluate();
   htmlOutput.setTitle("次回面談時注意抽出");
   ui.showSidebar(htmlOutput);
 }
+
+/**
+* @typedef {Object} MeetingNote - 次回面談のためのメモオブジェクト
+* @property {Date} date - 日付
+* @property {string} content - 内容
+*/
+function getExistingNotesWithContext(context) {
+  const maxN = (context && context.maxN) ? context.maxN : 8;
+  const result = getExistingNotes(maxN);
+  console.log("getExistingNotes result:", JSON.stringify(result));
+  return result.map(note => ({
+    date: note.date.toISOString(),
+    content: note.content
+  }));
+}
+/**
+ * 既に存在しているメモをスピードプランナーから取得
+ * @param {number} [maxN=8] 取得する最大件数
+ * @returns {MeetingNote[]}
+ */
+function getExistingNotes(maxN = 8) {
+  const book = getSpeedPlannerSsForCurrentDoc();
+  if (!book) return [];
+  const spIoManager = SpeedPlannerIOManagerLib.getSpeedPlannerIOManagerReadOnly(book);
+  return spIoManager.getLatestMeetingNotes(maxN);
+}
+
+/**
+ * htmlから呼び出すための、contextを受け取るラッパー
+ */
+function saveNewNoteWithContext({ note }) {
+  note.date = new Date(note.date);
+  console.log("note.date:", note.date, typeof note.date);
+  console.log("note.content:", note.content, typeof note.content);
+  console.log("note全体:", JSON.stringify(note));
+  saveNewNote(note);
+}
+/**
+* 新規メモをセーブする
+ * @param {MeetingNote} note -新規メモオブジェクト
+*/
+function saveNewNote(note) {
+  // 引数チェック
+  const isNoteValid = !!note && (typeof note === 'object') && !!(note.content) && !!(note.date);
+  if (!isNoteValid) {
+    const errMsg = `渡されたメモオブジェクトが不正です！
+参考：
+/**
+* @typedef {Object} MeetingNote - 次回面談のためのメモオブジェクト
+* @property {Date} date - 日付
+* @property {string} content - 内容
+*/
+渡された引数：
+${JSON.stringify(note)}`;
+    GASRefferenceSheetLogService.error(errMsg);
+    ToastNotificationService.send('新規メモを保存できませんでした。', 60);
+    return;
+  }
+  // 現在の生徒のioManager起動
+  const book = getSpeedPlannerSsForCurrentDoc();
+  if (!book) return;
+  const spIoManager = SpeedPlannerIOManagerLib.getSpeedPlannerIOManager(book);
+  // セーブ
+  spIoManager.appendNewMeetingNote(note);
+}
+
 /**
  * 生成用
  */
-function get_note_for_next_meeting() {
+function genNewNoteForNextMeeting() {
   const SEARCH_STRING = "面談メモ";
   const END_MARK = "以上。";
   const MODEL = "gpt-4o";
