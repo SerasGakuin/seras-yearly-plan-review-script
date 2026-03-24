@@ -11,47 +11,87 @@
       font-size: 13px;
     }
 
-    #notes-section { margin-bottom: 16px; }
+    /* ===== メモセクション全体 ===== */
+    #notes-section {
+      margin-bottom: 16px;
+    }
 
+    /* ===== タブ一覧 ===== */
     #notes-tabs {
       display: flex;
       flex-wrap: wrap;
+      flex-direction: row; /* 左から右へ並べる（新しいものが左） */
       gap: 4px;
-      margin-bottom: 0;
+      margin-bottom: 4px;
     }
 
+    /* タブ基本スタイル（全タブ共通・幅均一） */
     .note-tab {
-      padding: 4px 12px;
+      flex: 0 0 auto;
+      width: 72px;           /* 全タブ同一幅 */
+      padding: 4px 0;
+      text-align: center;
       border: 1px solid #aaa;
-      border-bottom: none;
-      border-radius: 4px 4px 0 0;
+      border-radius: 4px;
       cursor: pointer;
       background: #eee;
       font-size: 12px;
       color: #555;
+      user-select: none;
+      box-sizing: border-box;
+      overflow: hidden;
+      white-space: nowrap;
+      text-overflow: ellipsis;
     }
 
+    /* 選択中タブ */
     .note-tab.active {
       background: #fff;
-      border-color: #666;
+      border-color: #444;
       color: #000;
       font-weight: bold;
     }
 
+    /*
+     * 今回新規生成したタブ専用スタイル。
+     * 赤でハイライトし、未選択でも目立つようにする。
+     * .active と併用される場合は border-color を上書き。
+     */
+    .note-tab.new-note {
+      background: #fff0f0;
+      border-color: #c00;
+      color: #900;
+      font-weight: bold;
+    }
+
+    .note-tab.new-note.active {
+      background: #ffe0e0;
+      border-color: #900;
+      color: #600;
+    }
+
+    /* ===== タブのコンテンツ表示エリア ===== */
     #notes-content {
+      display: none; /* 初期状態は非表示。タブクリックで開く */
       border: 1px solid #666;
-      border-radius: 0 4px 4px 4px;
+      border-radius: 4px;
       padding: 10px 12px;
       background: #fff;
       min-height: 60px;
       font-size: 12px;
-      line-height: 1.7;
+      line-height: 1.8;
       white-space: pre-wrap;
       color: #222;
     }
 
-    #notes-loading { color: #888; font-size: 12px; margin: 6px 0; }
+    /* ===== 読み込み中・エラー表示 ===== */
+    #notes-loading {
+      color: #888;
+      font-size: 12px;
+      margin: 6px 0;
+    }
 
+    /* ===== 生成ボタン ===== */
     #generate-btn {
       display: block;
       width: 100%;
@@ -67,91 +107,149 @@
       box-sizing: border-box;
     }
 
-    #generate-btn:hover { background: #f0f0f0; }
-    #generate-btn:disabled { color: #aaa; border-color: #ccc; cursor: default; background: #f9f9f9; }
-
-    #view {
-      border: 1px solid #ddd;
-      border-radius: 4px;
-      padding: 10px 12px;
-      background: #fafafa;
-      min-height: 60px;
-      font-size: 13px;
-      line-height: 1.8;
-      color: #333;
-      white-space: pre-wrap;
+    #generate-btn:hover   { background: #f0f0f0; }
+    #generate-btn:disabled {
+      color: #aaa;
+      border-color: #ccc;
+      cursor: default;
+      background: #f9f9f9;
     }
 
-    #view.empty { color: #aaa; font-style: italic; }
-    #view.loading { color: #888; }
-    #view.error { color: #c00; }
-    #view.saved { border-color: #2a7a2a; }
-
+    /* ===== 保存ステータス（生成ボタン下に小さく表示） ===== */
     #save-status {
       font-size: 12px;
       color: #888;
       margin-bottom: 6px;
       min-height: 16px;
     }
-    #save-status.ok { color: #2a7a2a; }
+
+    #save-status.ok  { color: #2a7a2a; }
     #save-status.err { color: #c00; }
   </style>
 </head>
 <body>
 
+  <!-- メモタブ群とコンテンツエリアのコンテナ -->
   <div id="notes-section">
     <div id="notes-loading">既存メモを読み込み中…</div>
   </div>
 
+  <!-- 生成ボタン：生成完了後は非表示になる -->
   <button id="generate-btn" onclick="generateNextAnalysis()">分析を生成</button>
 
+  <!-- 自動保存の進捗表示 -->
   <div id="save-status"></div>
-  <div id="view" class="empty">ここに分析結果が表示されます</div>
 
   <script>
-    // ===== 既存メモタブUI =====
+    /*
+     * =====================================================
+     *  状態管理
+     * =====================================================
+     *  activeIndex : 現在開いているタブのインデックス（null = 全部閉じ）
+     *  notes       : タブに表示中のメモ配列。
+     *                GASから取得した既存メモ（新しい順）を初期値として持ち、
+     *                新規生成分は先頭に追加される。
+     *  tabElements : タブDOM要素の配列（notesと同じ順序で管理）
+     * =====================================================
+     */
+    var activeIndex  = null;
+    var notes        = [];
+    var tabElements  = [];
+
+    // ====================================================
+    //  タブ描画・再描画
+    //  notes[] と tabElements[] を同期させながらDOMを作る。
+    //  呼び出すたびに #notes-tabs の中身を作り直す。
+    // ====================================================
+    function renderTabs() {
+      const section   = document.getElementById("notes-section");
+      const contentEl = document.getElementById("notes-content");
+
+      // 初回呼び出し時にタブコンテナとコンテンツエリアを生成
+      var tabsEl = document.getElementById("notes-tabs");
+      if (!tabsEl) {
+        tabsEl = document.createElement("div");
+        tabsEl.id = "notes-tabs";
+        section.innerHTML = "";
+        section.appendChild(tabsEl);
+        section.appendChild(contentEl);
+      }
+
+      // タブを全部作り直す（tabElements も同時に再構築）
+      tabsEl.innerHTML = "";
+      tabElements = [];
+
+      notes.forEach(function (note, i) {
+        const tab = document.createElement("div");
+        tab.className = "note-tab" + (note.isNew ? " new-note" : "");
+
+        // タブのラベルは「年/月/日」
+        const d = new Date(note.date);
+        tab.textContent =
+          d.getFullYear() + "/" + (d.getMonth() + 1) + "/" + d.getDate();
+
+        // アクティブ状態の復元（再描画後も開いていたタブを保持）
+        if (activeIndex === i) {
+          tab.classList.add("active");
+        }
+
+        /*
+         * クリック動作：
+         *   - 同じタブをクリック → 閉じる
+         *   - 別のタブをクリック → 切り替える
+         */
+        tab.addEventListener("click", function () {
+          if (activeIndex === i) {
+            // 同じタブ → 閉じる
+            tab.classList.remove("active");
+            contentEl.style.display = "none";
+            activeIndex = null;
+          } else {
+            // 別のタブへ切り替え
+            tabElements.forEach(function (t) { t.classList.remove("active"); });
+            tab.classList.add("active");
+            contentEl.textContent = note.content;
+            contentEl.style.display = "block";
+            activeIndex = i;
+          }
+        });
+
+        tabsEl.appendChild(tab);
+        tabElements.push(tab);
+      });
+    }
+
+    // ====================================================
+    //  起動時：GASから既存メモを取得してタブを初期表示
+    // ====================================================
     (function () {
-      const section = document.getElementById("notes-section");
+      const section   = document.getElementById("notes-section");
+
+      // コンテンツエリアをあらかじめ生成しておく（renderTabs内で参照するため）
+      const contentEl = document.createElement("div");
+      contentEl.id    = "notes-content";
+      section.appendChild(contentEl);
 
       google.script.run
-        .withSuccessHandler(function (notes) {
-          if (typeof notes === "string") {
-            try { notes = JSON.parse(notes); } catch (e) { notes = null; }
+        .withSuccessHandler(function (rawNotes) {
+          // GASからの戻り値が文字列の場合はJSONパース
+          if (typeof rawNotes === "string") {
+            try { rawNotes = JSON.parse(rawNotes); } catch (e) { rawNotes = null; }
           }
 
-          if (!notes || !Array.isArray(notes) || notes.length === 0) {
+          if (!rawNotes || !Array.isArray(rawNotes) || rawNotes.length === 0) {
+            // メモなし：ローディング表示を差し替えて終了
             section.innerHTML = '<div id="notes-loading">既存メモはありません。</div>';
+            section.appendChild(contentEl);
             return;
           }
 
-          const tabsEl = document.createElement("div");
-          tabsEl.id = "notes-tabs";
-
-          const contentEl = document.createElement("div");
-          contentEl.id = "notes-content";
-
-          notes.forEach(function (note, i) {
-            const tab = document.createElement("div");
-            tab.className = "note-tab" + (i === 0 ? " active" : "");
-            const d = new Date(note.date);
-            tab.textContent = d.getFullYear() + "/" + (d.getMonth() + 1) + "/" + d.getDate();
-
-            tab.addEventListener("click", function () {
-              document.querySelectorAll(".note-tab").forEach(function (t) {
-                t.classList.remove("active");
-              });
-              tab.classList.add("active");
-              contentEl.textContent = note.content;
-            });
-
-            tabsEl.appendChild(tab);
-          });
-
-          contentEl.textContent = notes[0].content;
+          // notes[] に格納（GASはすでに新しい順で返してくれている前提）
+          notes = rawNotes;
 
           section.innerHTML = "";
-          section.appendChild(tabsEl);
           section.appendChild(contentEl);
+          renderTabs();
         })
         .withFailureHandler(function (err) {
           section.innerHTML =
@@ -161,60 +259,84 @@
         .abstractFunction({ id: "getExistingNotes", context: { maxN: 8 } });
     })();
 
-    // ===== 分析生成 → 自動保存 =====
+    // ====================================================
+    //  分析生成
+    //  GASを呼び出して分析テキストを取得し、
+    //  完了後に自動保存・タブ追加・ボタン非表示を行う。
+    // ====================================================
     function generateNextAnalysis() {
-      const viewEl = document.getElementById("view");
-      const btn = document.getElementById("generate-btn");
-      const statusEl = document.getElementById("save-status");
+      const btn       = document.getElementById("generate-btn");
+      const statusEl  = document.getElementById("save-status");
 
-      viewEl.className = "loading";
-      viewEl.textContent = "処理中…";
-      viewEl.classList.remove("saved");
-      statusEl.className = "";
+      statusEl.className   = "";
       statusEl.textContent = "";
-      btn.disabled = true;
+      btn.disabled         = true;
+      btn.textContent      = "生成中…";
 
       google.script.run
         .withSuccessHandler(function (result) {
-          btn.disabled = false;
-
           if (typeof result !== "string") {
-            viewEl.className = "error";
-            viewEl.textContent = "結果が文字列で返ってきませんでした: " + String(result);
+            // 予期しない型が返ってきた場合はエラー表示して復帰
+            btn.disabled    = false;
+            btn.textContent = "分析を生成";
+            statusEl.className   = "err";
+            statusEl.textContent = "結果が不正な型です: " + String(result);
             return;
           }
 
-          viewEl.className = "";
-          viewEl.innerHTML = result.replace(/\n/g, "<br>");
+          // 生成成功 → ボタンを完全に隠す
+          btn.style.display = "none";
 
+          // 新規メモを notes[] の先頭（=左端）に追加
+          // isNew フラグで赤ハイライトタブと判別する
+          const newNote = {
+            date    : new Date().toISOString(),
+            content : result,
+            isNew   : true   // 今回生成分の目印
+          };
+          notes.unshift(newNote);
+
+          // タブを再描画し、新規タブ（index=0）を自動で開く
+          activeIndex = 0;
+          renderTabs();
+
+          const contentEl = document.getElementById("notes-content");
+          contentEl.textContent = result;
+          contentEl.style.display = "block";
+
+          // バックエンド保存を並行実行
           autoSave(result);
         })
         .withFailureHandler(function (err) {
-          btn.disabled = false;
-          viewEl.className = "error";
-          viewEl.textContent =
-            "エラーが発生しました:\n" +
+          btn.disabled    = false;
+          btn.textContent = "分析を生成";
+          const statusEl  = document.getElementById("save-status");
+          statusEl.className   = "err";
+          statusEl.textContent =
+            "生成エラー: " +
             (err && err.message ? err.message : JSON.stringify(err));
         })
         .abstractFunction({ id: "genNewNoteForNextMeeting" });
     }
 
-    // ===== 自動保存 =====
+    // ====================================================
+    //  自動保存
+    //  生成成功直後に呼ばれる。バックエンドへの保存のみ担当。
+    //  UIへのフィードバックは #save-status に表示。
+    // ====================================================
     function autoSave(content) {
       const statusEl = document.getElementById("save-status");
-      const viewEl = document.getElementById("view");
 
-      statusEl.className = "";
+      statusEl.className   = "";
       statusEl.textContent = "保存中…";
 
       google.script.run
         .withSuccessHandler(function () {
-          statusEl.className = "ok";
+          statusEl.className   = "ok";
           statusEl.textContent = "保存しました ✓";
-          viewEl.classList.add("saved");
         })
         .withFailureHandler(function (err) {
-          statusEl.className = "err";
+          statusEl.className   = "err";
           statusEl.textContent =
             "保存に失敗しました: " +
             (err && err.message ? err.message : JSON.stringify(err));
@@ -223,8 +345,8 @@
           id: "saveNewNote",
           context: {
             note: {
-              date: new Date().toISOString(), // ← Date オブジェクトではなく文字列で渡す
-              content: content
+              date    : new Date().toISOString(), // DateオブジェクトはGAS境界を越えられないのでISO文字列で渡す
+              content : content
             }
           }
         });
