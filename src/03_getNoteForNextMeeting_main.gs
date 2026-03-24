@@ -43,7 +43,7 @@ function saveNewNote(note) {
   // 引数チェック
   const isNoteValid = !!note && (typeof note === 'object') && !!(note.content) && !!(note.date);
   if (!isNoteValid) {
-    console.error(`渡されたメモオブジェクトが不正です！
+    const errMsg = `渡されたメモオブジェクトが不正です！
 参考：
 /**
 * @typedef {Object} MeetingNote - 次回面談のためのメモオブジェクト
@@ -51,7 +51,8 @@ function saveNewNote(note) {
 * @property {string} content - 内容
 */
 渡された引数：
-${JSON.stringify(note)}`);
+${JSON.stringify(note)}`;
+    GASRefferenceSheetLogService.error(errMsg);
     ToastNotificationService.send('新規メモを保存できませんでした。', 60);
     return;
   }
