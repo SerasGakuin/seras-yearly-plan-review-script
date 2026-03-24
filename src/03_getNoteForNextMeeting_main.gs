@@ -37,7 +37,7 @@ function getExistingNotes(maxN = 8) {
 /**
  * 生成用
  */
-function getNewNotForNextMeeting() {
+function genNewNotForNextMeeting() {
   const SEARCH_STRING = "面談メモ";
   const END_MARK = "以上。";
   const MODEL = "gpt-4o";
