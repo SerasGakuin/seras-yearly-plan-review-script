@@ -1,15 +1,17 @@
 /**
- * 現在開いているドキュメントに対応する生徒のスピードプランナーSSインスタンスを返す。
- * 生徒マスターでドキュメントIDを照合し、対応するスプレッドシートを開いて返却する。
+ * 指定されたドキュメントID（省略時は現在開いているドキュメント）に対応する
+ * 生徒のスピードプランナーSSインスタンスを返す。
  * エラーが発生した場合（対応生徒なし・複数ヒット・SS取得失敗など）は null を返す。
  *
+ * @param {string | null} [docId=null] - ドキュメントID。省略またはnullの場合はアクティブなドキュメントを使用。
  * @returns {GoogleAppsScript.Spreadsheet.Spreadsheet | null}
  */
-function getSpeedPlannerSsForCurrentDoc() {
+function getSpeedPlannerSsForDoc(docId = null) {
   try {
-    // 現在開いているドキュメントのIDを取得
-    const currentDoc = DocumentApp.getActiveDocument();
-    const fileId = String(currentDoc.getId());
+    // docIdが渡されなかった場合はアクティブなドキュメントから取得
+    const fileId = docId
+      ? String(docId).trim()
+      : String(DocumentApp.getActiveDocument().getId());
 
     // 生徒マスターから全生徒情報を取得
     const studentMaster = StudentMasterLib.getStudentMaster_V2();
@@ -44,7 +46,7 @@ function getSpeedPlannerSsForCurrentDoc() {
     return SpreadsheetApp.openByUrl(speedPlannerUrl);
 
   } catch (e) {
-    const errMsg = `getSpeedPlannerSsForCurrentDoc: SSの取得に失敗しました。\n${e.message}\n${e.stack}`;
+    const errMsg = `getSpeedPlannerSsForDoc: SSの取得に失敗しました。\n${e.message}\n${e.stack}`;
     console.error(errMsg);
     GASRefferenceSheetLogService.error(errMsg);
     return null;
