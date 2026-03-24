@@ -34,6 +34,27 @@ function getExistingNotes(maxN = 8) {
   const spIoManager = SheetIO.getSpeedPlannerIOManagerReadOnly(book); 
   return spIoManager.getLatestMeetingNotes(maxN);
 }
+
+/**
+* 新規メモをセーブする
+ * @param {MeetingNote} note -新規メモオブジェクト
+*/
+function saveNewNote(note){
+  const isNoteValid = !!note && (typeof note === 'object') && !!(note.content) && !!(note.date);
+  if(!isNoteValid){
+    throw new Error(`渡されたメモオブジェクトが不正です！
+参考：
+/**
+* @typedef {Object} MeetingNote - 次回面談のためのメモオブジェクト
+* @property {Date} date - 日付
+* @property {string} content - 内容
+*/
+渡された引数：
+${JSON.stringify(note)}`);
+  }
+
+}
+
 /**
  * 生成用
  */
