@@ -11,7 +11,6 @@
       font-size: 13px;
     }
 
-    /* ===== 既存メモタブ ===== */
     #notes-section { margin-bottom: 16px; }
 
     #notes-tabs {
@@ -53,7 +52,6 @@
 
     #notes-loading { color: #888; font-size: 12px; margin: 6px 0; }
 
-    /* ===== 生成ボタン ===== */
     #generate-btn {
       display: block;
       width: 100%;
@@ -65,14 +63,32 @@
       border-radius: 4px;
       background: #fff;
       color: #222;
-      margin-bottom: 14px;
+      margin-bottom: 8px;
       box-sizing: border-box;
     }
 
     #generate-btn:hover { background: #f0f0f0; }
     #generate-btn:disabled { color: #aaa; border-color: #ccc; cursor: default; background: #f9f9f9; }
 
-    /* ===== 分析結果エリア ===== */
+    /* 保存ボタン：生成前は非表示 */
+    #save-btn {
+      display: none;
+      width: 100%;
+      padding: 8px;
+      font-size: 13px;
+      font-weight: bold;
+      cursor: pointer;
+      border: 1px solid #2a7a2a;
+      border-radius: 4px;
+      background: #f0fff0;
+      color: #1a5c1a;
+      margin-bottom: 14px;
+      box-sizing: border-box;
+    }
+
+    #save-btn:hover { background: #d8f5d8; }
+    #save-btn:disabled { color: #aaa; border-color: #ccc; cursor: default; background: #f9f9f9; }
+
     #view {
       border: 1px solid #ddd;
       border-radius: 4px;
@@ -88,6 +104,7 @@
     #view.empty { color: #aaa; font-style: italic; }
     #view.loading { color: #888; }
     #view.error { color: #c00; }
+    #view.saved { border-color: #2a7a2a; }
   </style>
 </head>
 <body>
@@ -97,10 +114,14 @@
   </div>
 
   <button id="generate-btn" onclick="generateNextAnalysis()">分析を生成</button>
+  <button id="save-btn" onclick="saveGeneratedNote()">保存する</button>
 
   <div id="view" class="empty">ここに分析結果が表示されます</div>
 
   <script>
+    // 生成結果を保持しておく
+    var _generatedContent = null;
+
     // ===== 既存メモタブUI =====
     (function () {
       const section = document.getElementById("notes-section");
@@ -155,6 +176,10 @@
     function generateNextAnalysis() {
       const viewEl = document.getElementById("view");
       const btn = document.getElementById("generate-btn");
+      const saveBtn = document.getElementById("save-btn");
+
+      _generatedContent = null;
+      saveBtn.style.display = "none";
 
       viewEl.className = "loading";
       viewEl.textContent = "処理中…";
@@ -170,8 +195,14 @@
             return;
           }
 
+          _generatedContent = result;
           viewEl.className = "";
           viewEl.innerHTML = result.replace(/\n/g, "<br>");
+
+          // 保存ボタンを表示
+          saveBtn.style.display = "block";
+          saveBtn.disabled = false;
+          saveBtn.textContent = "保存する";
         })
         .withFailureHandler(function (err) {
           btn.disabled = false;
@@ -181,6 +212,34 @@
             (err && err.message ? err.message : JSON.stringify(err));
         })
         .abstractFunction({ id: "genNewNoteForNextMeeting" });
+    }
+
+    // ===== メモ保存 =====
+    function saveGeneratedNote() {
+      if (!_generatedContent) return;
+
+      const saveBtn = document.getElementById("save-btn");
+      const viewEl = document.getElementById("view");
+
+      saveBtn.disabled = true;
+      saveBtn.textContent = "保存中…";
+
+      const note = {
+        date: new Date(),
+        content: _generatedContent
+      };
+
+      google.script.run
+        .withSuccessHandler(function () {
+          saveBtn.textContent = "保存済み ✓";
+          viewEl.classList.add("saved");
+        })
+        .withFailureHandler(function (err) {
+          saveBtn.disabled = false;
+          saveBtn.textContent = "保存する（失敗 — 再試行）";
+          alert("保存エラー:\n" + (err && err.message ? err.message : JSON.stringify(err)));
+        })
+        .saveNewNote(note);
     }
   </script>
 </body>
