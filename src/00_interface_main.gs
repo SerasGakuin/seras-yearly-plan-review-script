@@ -37,7 +37,7 @@ function abstractFunction(request) {
   }
   // NOTE(2026-03-14): 今後機能が拡張されるようなら「ガントチャートテンプレート」ライブラリのような柔軟な実装にするが、いまはそこまで不要なのでswitchで簡易的に実装
   try {
-    return runById(id);
+    return runById(id, context);
   } catch (e) {
     console.error(e);
     GASRefferenceSheetLogService.error(e.message + "\n" + e.stack);
@@ -47,13 +47,16 @@ function abstractFunction(request) {
 
 /**
  * idごとに関数を振り分ける関数。
- * @param {idArg} 関数を特定する識別子
+ * @param {string} idArg 関数を特定する識別子
+ * @param {Object} context
  */
-function runById(idArg) {
+function runById(idArg, context = null) {
   const id = String(idArg).trim();
   switch (id) {
     case "genNewNoteForNextMeeting":
       return genNewNoteForNextMeeting();
+    case "saveNewNote":
+      return saveNewNoteWithContext(context)
     default:
       throw new Error(`不明なid : ${id}`);
   }
