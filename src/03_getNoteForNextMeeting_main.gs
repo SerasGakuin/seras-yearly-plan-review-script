@@ -31,7 +31,7 @@ function openSidebar() {
  */
 function getExistingNotes(maxN = 8) {
   const book = SpreadsheetApp.getActive();
-  const spIoManager = SheetIO.getSpeedPlannerIOManagerReadOnly(book); 
+  const spIoManager = SheetIO.getSpeedPlannerIOManagerReadOnly(book);
   return spIoManager.getLatestMeetingNotes(maxN);
 }
 
@@ -39,10 +39,11 @@ function getExistingNotes(maxN = 8) {
 * 新規メモをセーブする
  * @param {MeetingNote} note -新規メモオブジェクト
 */
-function saveNewNote(note){
+function saveNewNote(note) {
+  // 引数チェック
   const isNoteValid = !!note && (typeof note === 'object') && !!(note.content) && !!(note.date);
-  if(!isNoteValid){
-    throw new Error(`渡されたメモオブジェクトが不正です！
+  if (!isNoteValid) {
+    console.error(`渡されたメモオブジェクトが不正です！
 参考：
 /**
 * @typedef {Object} MeetingNote - 次回面談のためのメモオブジェクト
@@ -51,6 +52,8 @@ function saveNewNote(note){
 */
 渡された引数：
 ${JSON.stringify(note)}`);
+    ToastNotificationService.send('新規メモを保存できませんでした。', 60);
+    return;
   }
 
 }
