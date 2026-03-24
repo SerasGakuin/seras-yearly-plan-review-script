@@ -44,7 +44,6 @@ function getExistingNotes(maxN = 8) {
  */
 function saveNewNoteWithContext({ note }) {
   note.date = new Date(note.date);
-  ToastNotificationService.send(JSON.stringify(note), 60);
   saveNewNote(note);
 }
 /**
@@ -70,10 +69,9 @@ ${JSON.stringify(note)}`;
   }
   // 現在の生徒のioManager起動
   const book = SpreadsheetApp.openByUrl("https://docs.google.com/spreadsheets/d/1Sbkc6tVO2A8g_8bqL4L7rid4VCFGZ_BnSg9034MsQdk/edit?gid=344613473#gid=344613473")
-  const spIoManager = SheetIO.getSpeedPlannerIOManagerReadOnly(book);
+  const spIoManager = SheetIO.getSpeedPlannerIOManager(book);
   // セーブ
   spIoManager.appendNewMeetingNote(note);
-  ToastNotificationService.send('新規メモを保存しました。内容：\n' + JSON.stringify(note), 60);
 }
 
 /**
