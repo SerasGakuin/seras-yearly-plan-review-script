@@ -24,13 +24,16 @@ function openSidebar() {
 * @property {string} content - 内容
 */
 
+function getExistingNotesWithContext({max}){
+  return getExistingNotes(max)
+}
 /**
  * 既に存在しているメモをスピードプランナーから取得
  * @param {number} [maxN=8] 取得する最大件数
  * @returns {MeetingNote[]}
  */
 function getExistingNotes(maxN = 8) {
-  const book = SpreadsheetApp.getActive();
+  const book = SpreadsheetApp.openByUrl("https://docs.google.com/spreadsheets/d/1Sbkc6tVO2A8g_8bqL4L7rid4VCFGZ_BnSg9034MsQdk/edit?gid=344613473#gid=344613473")
   const spIoManager = SheetIO.getSpeedPlannerIOManagerReadOnly(book);
   return spIoManager.getLatestMeetingNotes(maxN);
 }
@@ -39,6 +42,8 @@ function getExistingNotes(maxN = 8) {
  * htmlから呼び出すための、contextを受け取るラッパー
  */
 function saveNewNoteWithContext({ note }) {
+  note.date = new Date(note.date);
+  ToastNotificationService.send(JSON.stringify(note), 60);
   saveNewNote(note);
 }
 /**
@@ -63,7 +68,7 @@ ${JSON.stringify(note)}`;
     return;
   }
   // 現在の生徒のioManager起動
-  const book = SpreadsheetApp.getActive();
+  const book = SpreadsheetApp.openByUrl("https://docs.google.com/spreadsheets/d/1Sbkc6tVO2A8g_8bqL4L7rid4VCFGZ_BnSg9034MsQdk/edit?gid=344613473#gid=344613473")
   const spIoManager = SheetIO.getSpeedPlannerIOManagerReadOnly(book);
   // セーブ
   spIoManager.appendNewMeetingNote(note);

@@ -55,6 +55,8 @@ function runById(idArg, context = null) {
   switch (id) {
     case "genNewNoteForNextMeeting":
       return genNewNoteForNextMeeting();
+    case "getExistingNotes":
+      return getExistingNotesWithContext(context);
     case "saveNewNote":
       return saveNewNoteWithContext(context)
     default:
