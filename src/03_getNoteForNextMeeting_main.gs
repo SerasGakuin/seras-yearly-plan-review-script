@@ -40,7 +40,7 @@ function getExistingNotesWithContext(context) {
 function getExistingNotes(maxN = 8) {
   const book = getSpeedPlannerSsForCurrentDoc();
   if (!book) return [];
-  const spIoManager = SheetIO.getSpeedPlannerIOManagerReadOnly(book);
+  const spIoManager = SpeedPlannerIOManagerLib.getSpeedPlannerIOManagerReadOnly(book);
   return spIoManager.getLatestMeetingNotes(maxN);
 }
 
@@ -78,7 +78,7 @@ ${JSON.stringify(note)}`;
   // 現在の生徒のioManager起動
   const book = getSpeedPlannerSsForCurrentDoc();
   if (!book) return;
-  const spIoManager = SheetIO.getSpeedPlannerIOManager(book);
+  const spIoManager = SpeedPlannerIOManagerLib.getSpeedPlannerIOManager(book);
   // セーブ
   spIoManager.appendNewMeetingNote(note);
 }
