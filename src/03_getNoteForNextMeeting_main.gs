@@ -23,11 +23,10 @@ function openSidebar() {
 * @property {Date} date - 日付
 * @property {string} content - 内容
 */
-
 function getExistingNotesWithContext(context) {
+  const maxN = (context && context.maxN) ? context.maxN : 8;
   const result = getExistingNotes(maxN);
   console.log("getExistingNotes result:", JSON.stringify(result));
-  // ここで文字列化してシリアライズしないとhtml側でバグる
   return result.map(note => ({
     date: note.date.toISOString(),
     content: note.content
@@ -39,7 +38,8 @@ function getExistingNotesWithContext(context) {
  * @returns {MeetingNote[]}
  */
 function getExistingNotes(maxN = 8) {
-  const book = SpreadsheetApp.openByUrl("https://docs.google.com/spreadsheets/d/1Sbkc6tVO2A8g_8bqL4L7rid4VCFGZ_BnSg9034MsQdk/edit?gid=344613473#gid=344613473")
+  const book = getSpeedPlannerSsForCurrentDoc();
+  if (!book) return [];
   const spIoManager = SheetIO.getSpeedPlannerIOManagerReadOnly(book);
   return spIoManager.getLatestMeetingNotes(maxN);
 }
@@ -49,6 +49,9 @@ function getExistingNotes(maxN = 8) {
  */
 function saveNewNoteWithContext({ note }) {
   note.date = new Date(note.date);
+  console.log("note.date:", note.date, typeof note.date);
+  console.log("note.content:", note.content, typeof note.content);
+  console.log("note全体:", JSON.stringify(note));
   saveNewNote(note);
 }
 /**
@@ -73,7 +76,8 @@ ${JSON.stringify(note)}`;
     return;
   }
   // 現在の生徒のioManager起動
-  const book = SpreadsheetApp.openByUrl("https://docs.google.com/spreadsheets/d/1Sbkc6tVO2A8g_8bqL4L7rid4VCFGZ_BnSg9034MsQdk/edit?gid=344613473#gid=344613473")
+  const book = getSpeedPlannerSsForCurrentDoc();
+  if (!book) return;
   const spIoManager = SheetIO.getSpeedPlannerIOManager(book);
   // セーブ
   spIoManager.appendNewMeetingNote(note);
