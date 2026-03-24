@@ -25,8 +25,13 @@ function openSidebar() {
 */
 
 function getExistingNotesWithContext(context) {
-  const maxN = (context && context.maxN) ? context.maxN : 8;
-  return getExistingNotes(maxN);
+  const result = getExistingNotes(maxN);
+  console.log("getExistingNotes result:", JSON.stringify(result));
+  // ここで文字列化してシリアライズしないとhtml側でバグる
+  return result.map(note => ({
+    date: note.date.toISOString(),
+    content: note.content
+  }));
 }
 /**
  * 既に存在しているメモをスピードプランナーから取得
