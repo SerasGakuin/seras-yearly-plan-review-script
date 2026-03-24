@@ -30,14 +30,14 @@ function openSidebar() {
  * @returns {MeetingNote[]}
  */
 function getExistingNotes(maxN = 8) {
-  const book = SpreadsheetApp.getActive(); // ← SpreadSheetApp → SpreadsheetApp
-  const spIoManager = SheetIO.getSpeedPlannerIOManagerReadOnly(book); // ← typo修正
+  const book = SpreadsheetApp.getActive();
+  const spIoManager = SheetIO.getSpeedPlannerIOManagerReadOnly(book); 
   return spIoManager.getLatestMeetingNotes(maxN);
 }
 /**
  * 生成用
  */
-function genNewNotForNextMeeting() {
+function genNewNoteForNextMeeting() {
   const SEARCH_STRING = "面談メモ";
   const END_MARK = "以上。";
   const MODEL = "gpt-4o";
