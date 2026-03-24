@@ -6,7 +6,7 @@
  * @param {string | null} [docId=null] - ドキュメントID。省略またはnullの場合はアクティブなドキュメントを使用。
  * @returns {GoogleAppsScript.Spreadsheet.Spreadsheet | null}
  */
-function getSpeedPlannerSsForDoc(docId = null) {
+function getSpeedPlannerSsForCurrentDoc(docId = null) {
   try {
     // docIdが渡されなかった場合はアクティブなドキュメントから取得
     const fileId = docId
