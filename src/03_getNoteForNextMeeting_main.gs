@@ -36,6 +36,12 @@ function getExistingNotes(maxN = 8) {
 }
 
 /**
+ * htmlから呼び出すための、contextを受け取るラッパー
+ */
+function saveNewNoteWithContext({ note }) {
+  saveNewNote(note);
+}
+/**
 * 新規メモをセーブする
  * @param {MeetingNote} note -新規メモオブジェクト
 */
@@ -56,7 +62,12 @@ ${JSON.stringify(note)}`;
     ToastNotificationService.send('新規メモを保存できませんでした。', 60);
     return;
   }
-
+  // 現在の生徒のioManager起動
+  const book = SpreadsheetApp.getActive();
+  const spIoManager = SheetIO.getSpeedPlannerIOManagerReadOnly(book);
+  // セーブ
+  spIoManager.appendNewMeetingNote(note);
+  ToastNotificationService.send('新規メモを保存しました。内容：\n' + JSON.stringify(note), 60);
 }
 
 /**
