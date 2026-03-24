@@ -1,43 +1,35 @@
 <!doctype html>
 <html>
-
 <head>
   <meta charset="utf-8" />
-  <title>自動実行サンプル</title>
+  <title>次回面談時注意抽出</title>
   <style>
     body {
       font-family: sans-serif;
       margin: 0;
-      padding: 0;
-    }
-
-    #status {
-      margin: 20px;
-      font-weight: bold;
+      padding: 12px;
+      font-size: 13px;
     }
 
     /* ===== 既存メモタブ ===== */
-    #notes-section {
-      margin: 20px;
-    }
+    #notes-section { margin-bottom: 16px; }
 
     #notes-tabs {
       display: flex;
       flex-wrap: wrap;
-      gap: 6px;
+      gap: 4px;
       margin-bottom: 0;
     }
 
     .note-tab {
-      padding: 6px 14px;
+      padding: 4px 12px;
       border: 1px solid #aaa;
       border-bottom: none;
       border-radius: 4px 4px 0 0;
       cursor: pointer;
       background: #eee;
-      font-size: 13px;
-      color: #444;
-      transition: background 0.15s;
+      font-size: 12px;
+      color: #555;
     }
 
     .note-tab.active {
@@ -50,45 +42,77 @@
     #notes-content {
       border: 1px solid #666;
       border-radius: 0 4px 4px 4px;
-      padding: 14px 16px;
+      padding: 10px 12px;
       background: #fff;
-      min-height: 80px;
-      font-size: 13px;
+      min-height: 60px;
+      font-size: 12px;
       line-height: 1.7;
       white-space: pre-wrap;
       color: #222;
     }
 
-    #notes-loading {
-      color: #888;
+    #notes-loading { color: #888; font-size: 12px; margin: 6px 0; }
+
+    /* ===== 生成ボタン ===== */
+    #generate-btn {
+      display: block;
+      width: 100%;
+      padding: 10px;
       font-size: 13px;
-      margin: 8px 0;
+      font-weight: bold;
+      cursor: pointer;
+      border: 1px solid #888;
+      border-radius: 4px;
+      background: #fff;
+      color: #222;
+      margin-bottom: 14px;
+      box-sizing: border-box;
     }
+
+    #generate-btn:hover { background: #f0f0f0; }
+    #generate-btn:disabled { color: #aaa; border-color: #ccc; cursor: default; background: #f9f9f9; }
 
     /* ===== 分析結果エリア ===== */
     #view {
-      margin: 20px;
-      font-size: 14px;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+      padding: 10px 12px;
+      background: #fafafa;
+      min-height: 60px;
+      font-size: 13px;
       line-height: 1.8;
-      color: #222;
+      color: #333;
+      white-space: pre-wrap;
     }
+
+    #view.empty { color: #aaa; font-style: italic; }
+    #view.loading { color: #888; }
+    #view.error { color: #c00; }
   </style>
 </head>
-
 <body>
 
-  <div id="notes-section"></div>
-  <div id="view"></div>
+  <div id="notes-section">
+    <div id="notes-loading">既存メモを読み込み中…</div>
+  </div>
+
+  <button id="generate-btn" onclick="generateNextAnalysis()">分析を生成</button>
+
+  <div id="view" class="empty">ここに分析結果が表示されます</div>
 
   <script>
     // ===== 既存メモタブUI =====
     (function () {
       const section = document.getElementById("notes-section");
-      section.innerHTML = '<div id="notes-loading">既存メモを読み込み中…</div>';
 
       google.script.run
         .withSuccessHandler(function (notes) {
           if (typeof notes === "string") notes = JSON.parse(notes);
+
+          if (!notes || notes.length === 0) {
+            section.innerHTML = '<div id="notes-loading">既存メモはありません。</div>';
+            return;
+          }
 
           const tabsEl = document.createElement("div");
           tabsEl.id = "notes-tabs";
@@ -96,19 +120,16 @@
           const contentEl = document.createElement("div");
           contentEl.id = "notes-content";
 
-          if (!notes || notes.length === 0) {
-            section.innerHTML = '<div id="notes-loading">既存メモはありません。</div>';
-            return;
-          }
-
           notes.forEach(function (note, i) {
             const tab = document.createElement("div");
             tab.className = "note-tab" + (i === 0 ? " active" : "");
             const d = new Date(note.date);
-            tab.textContent = `${d.getFullYear()}/${d.getMonth() + 1}/${d.getDate()}`;
+            tab.textContent = d.getFullYear() + "/" + (d.getMonth() + 1) + "/" + d.getDate();
 
             tab.addEventListener("click", function () {
-              document.querySelectorAll(".note-tab").forEach(t => t.classList.remove("active"));
+              document.querySelectorAll(".note-tab").forEach(function (t) {
+                t.classList.remove("active");
+              });
               tab.classList.add("active");
               contentEl.textContent = note.content;
             });
@@ -131,38 +152,36 @@
     })();
 
     // ===== 分析生成 =====
-    /**
-     * 最新のメモを参照して分析を追加する
-     */
     function generateNextAnalysis() {
       const viewEl = document.getElementById("view");
-      viewEl.textContent = "処理中…";
+      const btn = document.getElementById("generate-btn");
 
-      const requestForFunc = {
-        id: "genNewNotForNextMeeting"
-      };
+      viewEl.className = "loading";
+      viewEl.textContent = "処理中…";
+      btn.disabled = true;
 
       google.script.run
         .withSuccessHandler(function (result) {
-          console.log("success result:", result);
+          btn.disabled = false;
 
           if (typeof result !== "string") {
-            viewEl.textContent =
-              "結果が文字列で返ってきませんでした: " + String(result);
+            viewEl.className = "error";
+            viewEl.textContent = "結果が文字列で返ってきませんでした: " + String(result);
             return;
           }
 
+          viewEl.className = "";
           viewEl.innerHTML = result.replace(/\n/g, "<br>");
         })
         .withFailureHandler(function (err) {
-          console.error("failure:", err);
+          btn.disabled = false;
+          viewEl.className = "error";
           viewEl.textContent =
             "エラーが発生しました:\n" +
             (err && err.message ? err.message : JSON.stringify(err));
         })
-        .abstractFunction(requestForFunc);
+        .abstractFunction({ id: "genNewNotForNextMeeting" });
     }
   </script>
 </body>
-
 </html>
