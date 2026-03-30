@@ -4,7 +4,9 @@
  * すべてのOAuthスコープの認証ダイアログを発生させる。
  * 副作用ゼロ（読み取り・外部通信はいずれも無害な操作のみ）。
  */
-function checkAllPermissions() {
+(function checkAllPermissions() {
+  console.time("全権限チェック");
+  try{
 
   // 1. Googleドキュメント（read）
   DocumentApp.getActiveDocument();
@@ -24,8 +26,9 @@ function checkAllPermissions() {
 
   // 5. HtmlService（スコープ不要だが念のため疎通確認）
   HtmlService.createHtmlOutput("");
+  }catch(e){
+    console.error(e.message);
+  }
 
-  console.log("✅ 全権限チェック完了");
-}
-// 無駄に実行して権限を確保
-(checkAllPermissions())();
+  console.timeEnd("全権限チェック");
+})();// 無駄に実行して権限を確保
