@@ -1,0 +1,27 @@
+{
+  "timeZone": "Asia/Tokyo",
+  "dependencies": {
+    "libraries": [
+      {
+        "userSymbol": "StudentMasterLib",
+        "version": "0",
+        "libraryId": "1hdd2pQx9pClp2xQklBRLNMoF8vuWUoQ4YxOaxED8Ia7_7qJ-Ox6J8I4L",
+        "developmentMode": true
+      },
+      {
+        "userSymbol": "SpeedPlannerIOManagerLib",
+        "version": "0",
+        "libraryId": "1ri9Dc5vA0MfYp6zGFUKpxjMlPPO037Vd6AsJwHZW1fHunJxgALYHLf87",
+        "developmentMode": true
+      }
+    ]
+  },
+  "exceptionLogging": "STACKDRIVER",
+  "runtimeVersion": "V8",
+  "oauthScopes": [
+    "https://www.googleapis.com/auth/documents",
+    "https://www.googleapis.com/auth/spreadsheets",
+    "https://www.googleapis.com/auth/script.external_request",
+    "https://www.googleapis.com/auth/script.scriptapp"
+  ]
+}
