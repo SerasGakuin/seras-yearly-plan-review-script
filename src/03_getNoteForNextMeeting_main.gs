@@ -95,8 +95,7 @@ function saveNewNote(note) {
 渡された引数：
 ${JSON.stringify(note)}`;
     GASRefferenceSheetLogService.error(errMsg);
-    ToastNotificationService.send('新規メモを保存できませんでした。', 60);
-    return;
+    throw new Error(errMsg); // returnではなくthrow
   }
   // 現在の生徒のioManager起動
   const speedPlannerSs = getSpeedPlannerSsForCurrentDoc();
