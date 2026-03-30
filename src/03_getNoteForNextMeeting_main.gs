@@ -6,13 +6,26 @@
  * サイドバー展開用。
  */
 function openSidebar() {
-  // uiを準備
   const ui = DocumentApp.getUi();
   const template = HtmlService.createTemplateFromFile("03_index");
-  // 存在しているメモを取得
-  const existingNotes = getExistingNotes(8);
-  template.existingNotes = existingNotes.slice(0, 8); // 8つまで取る
-  // html生成
+
+  let existingNotes;
+  let errMsg;
+  try{
+    existingNotes = getExistingNotes(8).slice(0, 8).map(note => ({
+      date: !!note.date && (typeof note.date === 'object') && !!(note.date.toISOString) ?
+       note.date.toISOString() : String(note.date), // 後者は苦肉の策。文字列化しないとhtmlでオブジェクトをうけとれない。
+      content: note.content || ""
+    }));
+    errMsg = null;
+  }catch(e){
+    existingNotes = [];
+    errMsg = e.message;
+  }
+  
+  template.existingNotes = existingNotes;
+  template.errMsg = errMsg;
+
   const htmlOutput = template.evaluate();
   htmlOutput.setTitle("次回面談時注意抽出");
   ui.showSidebar(htmlOutput);
@@ -32,15 +45,25 @@ function getExistingNotesWithContext(context) {
     content: note.content
   }));
 }
+
+
 /**
  * 既に存在しているメモをスピードプランナーから取得
  * @param {number} [maxN=8] 取得する最大件数
  * @returns {MeetingNote[]}
+ * @throws スピードプランナーが見つからなかった場合・IOでエラーが発生した場合
  */
 function getExistingNotes(maxN = 8) {
-  const book = getSpeedPlannerSsForCurrentDoc();
-  if (!book) return [];
-  const spIoManager = SpeedPlannerIOManagerLib.getSpeedPlannerIOManagerReadOnly(book);
+  const speedPlannerSs = getSpeedPlannerSsForCurrentDoc();
+
+  if (!speedPlannerSs) {
+    const currDoc = DocumentApp.getActiveDocument();
+    const docId = currDoc.getId();
+    const docName = currDoc.getName();
+    throw new Error(`ドキュメントid:${docId}の${docName}に対応するスピードプランナーは見つかりませんでした。`);
+  }
+
+  const spIoManager = SpeedPlannerIOManagerLib.getSpeedPlannerIOManagerReadOnly(speedPlannerSs);
   return spIoManager.getLatestMeetingNotes(maxN);
 }
 
@@ -76,11 +99,15 @@ ${JSON.stringify(note)}`;
     return;
   }
   // 現在の生徒のioManager起動
-  const book = getSpeedPlannerSsForCurrentDoc();
-  if (!book) return;
-  const spIoManager = SpeedPlannerIOManagerLib.getSpeedPlannerIOManager(book);
+  const speedPlannerSs = getSpeedPlannerSsForCurrentDoc();
+  if (!speedPlannerSs) {
+    throw new Error(`このドキュメントに対応するスピードプランナーを生徒マスターから見つけられませんでした。
+  docId: ${docId}`);
+  }
+  const spIoManager = SpeedPlannerIOManagerLib.getSpeedPlannerIOManager(speedPlannerSs);
   // セーブ
   spIoManager.appendNewMeetingNote(note);
+  SpreadsheetApp.flush();
 }
 
 /**

@@ -1,5 +1,6 @@
 <!doctype html>
 <html>
+
 <head>
   <meta charset="utf-8" />
   <title>次回面談時注意抽出</title>
@@ -20,7 +21,8 @@
     #notes-tabs {
       display: flex;
       flex-wrap: wrap;
-      flex-direction: row; /* 左から右へ並べる（新しいものが左） */
+      flex-direction: row;
+      /* 左から右へ並べる（新しいものが左） */
       gap: 4px;
       margin-bottom: 4px;
     }
@@ -28,7 +30,8 @@
     /* タブ基本スタイル（全タブ共通・幅均一） */
     .note-tab {
       flex: 0 0 auto;
-      width: 72px;           /* 全タブ同一幅 */
+      width: 72px;
+      /* 全タブ同一幅 */
       padding: 4px 0;
       text-align: center;
       border: 1px solid #aaa;
@@ -72,7 +75,8 @@
 
     /* ===== タブのコンテンツ表示エリア ===== */
     #notes-content {
-      display: none; /* 初期状態は非表示。タブクリックで開く */
+      display: none;
+      /* 初期状態は非表示。タブクリックで開く */
       border: 1px solid #666;
       border-radius: 4px;
       padding: 10px 12px;
@@ -107,7 +111,10 @@
       box-sizing: border-box;
     }
 
-    #generate-btn:hover   { background: #f0f0f0; }
+    #generate-btn:hover {
+      background: #f0f0f0;
+    }
+
     #generate-btn:disabled {
       color: #aaa;
       border-color: #ccc;
@@ -123,10 +130,16 @@
       min-height: 16px;
     }
 
-    #save-status.ok  { color: #2a7a2a; }
-    #save-status.err { color: #c00; }
+    #save-status.ok {
+      color: #2a7a2a;
+    }
+
+    #save-status.err {
+      color: #c00;
+    }
   </style>
 </head>
+
 <body>
 
   <!-- メモタブ群とコンテンツエリアのコンテナ -->
@@ -136,11 +149,17 @@
 
   <!-- 生成ボタン：生成完了後は非表示になる -->
   <button id="generate-btn" onclick="generateNextAnalysis()">分析を生成</button>
-
   <!-- 自動保存の進捗表示 -->
   <div id="save-status"></div>
 
+
+
   <script>
+    function debugStatus(message) {
+      const statusEl = document.getElementById("save-status");
+      statusEl.className = "";
+      statusEl.textContent = message;
+    }
     /*
      * =====================================================
      *  状態管理
@@ -219,44 +238,49 @@
       });
     }
 
+    var initialNotes = <?= JSON.stringify(existingNotes || []) ?>;
+    // 文字列ならパース
+    if (typeof initialNotes === "string") {
+    try {
+        initialNotes = JSON.parse(initialNotes);
+      } catch (e) {
+        debugStatus("initialNotes のJSON.parseに失敗: " + e.message);
+        initialNotes = [];
+      }
+    }
+    
     // ====================================================
     //  起動時：GASから既存メモを取得してタブを初期表示
     // ====================================================
     (function () {
       const section   = document.getElementById("notes-section");
 
-      // コンテンツエリアをあらかじめ生成しておく（renderTabs内で参照するため）
+      // コンテンツエリア生成
       const contentEl = document.createElement("div");
       contentEl.id    = "notes-content";
       section.appendChild(contentEl);
 
-      google.script.run
-        .withSuccessHandler(function (rawNotes) {
-          // GASからの戻り値が文字列の場合はJSONパース
-          if (typeof rawNotes === "string") {
-            try { rawNotes = JSON.parse(rawNotes); } catch (e) { rawNotes = null; }
-          }
+      // サーバーから埋め込まれたデータを使う
+      let rawNotes = initialNotes;
 
-          if (!rawNotes || !Array.isArray(rawNotes) || rawNotes.length === 0) {
-            // メモなし：ローディング表示を差し替えて終了
-            section.innerHTML = '<div id="notes-loading">既存メモはありません。</div>';
-            section.appendChild(contentEl);
-            return;
-          }
+      // 念のための防御（型崩れ対策）
+      if (!rawNotes || !Array.isArray(rawNotes) || rawNotes.length === 0) {
+        section.innerHTML = '<div id="notes-loading">既存メモはありません。</div>';
+        section.appendChild(contentEl);
+        return;
+      }
 
-          // notes[] に格納（GASはすでに新しい順で返してくれている前提）
-          notes = rawNotes;
+      // Dateを復元（ここ重要）
+      notes = rawNotes.map(function(note) {
+        return {
+          date: new Date(note.date),
+          content: note.content
+        };
+      });
 
-          section.innerHTML = "";
-          section.appendChild(contentEl);
-          renderTabs();
-        })
-        .withFailureHandler(function (err) {
-          section.innerHTML =
-            '<div id="notes-loading">メモ取得エラー: ' +
-            (err && err.message ? err.message : JSON.stringify(err)) + '</div>';
-        })
-        .abstractFunction({ id: "getExistingNotes", context: { maxN: 8 } });
+      section.innerHTML = "";
+      section.appendChild(contentEl);
+      renderTabs();
     })();
 
     // ====================================================
@@ -353,4 +377,5 @@
     }
   </script>
 </body>
+
 </html>
