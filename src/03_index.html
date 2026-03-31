@@ -192,9 +192,12 @@
         tab.className = "note-tab" + (note.isNew ? " new-note" : "");
 
         const d = new Date(note.date);
-        tab.textContent =
-          d.getFullYear() + "/" + (d.getMonth() + 1) + "/" + d.getDate();
+        const dateView =  d.getFullYear() + "/" + (d.getMonth() + 1) + "/" + d.getDate();
 
+        tab.textContent = dateView;
+
+        const contentView = "[" + dateView + "]\n" + String(note.content);
+         
         if (activeIndex === i) tab.classList.add("active");
 
         tab.addEventListener("click", function () {
@@ -205,7 +208,7 @@
           } else {
             tabElements.forEach(function (t) { t.classList.remove("active"); });
             tab.classList.add("active");
-            contentEl.textContent = note.content;
+            contentEl.textContent = contentView;
             contentEl.style.display = "block";
             activeIndex = i;
           }
